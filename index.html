@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Welcome</title>
+        <meta charset='UTF-8'>
+        <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+        <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+        <link type="text/css" rel="stylesheet" href="Style.css">
+        <link type="image/x-icon" rel="icon" href="favicon.ico">
+        <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+        <link rel="manifest" href="manifest.json">
+        <link rel="apple-touch-icon" href="favicon.png">
+    </head>
+    <body>
+    <div id = "Div0" style="display:none;">
+    <button id="Button0">
+        <img src="Buttons/a.png" alt="Loading">
+        <!-- <span id = "Countdown0"><br>a</span> -->
+    </button>
+    </div>
+    <div id = "Div1" style="display:none;">
+        <h1>Time for Punishment:</h1>
+        <input type="text" id = "Time" size="5">
+        <input type="submit" value="Ok">
+    </div>
+    <script>
+        let HoldTime = null;
+        let Mistakes = null;
+        let Reset = 0;
+        const Button0 = document.getElementById("Button0");
+        const Countdown0 = document.getElementById("Countdown0");
+
+        Button0.addEventListener("contextmenu", (e) => {
+            e.preventDefault();
+        });
+
+        function StartHold() {
+            HoldTime = setTimeout(() => {
+                UpdateDB();
+            }, 1000);
+        }
+
+        function CancelHold() {
+            clearTimeout(HoldTime);
+        }
+
+        Button0.addEventListener("mousedown", StartHold);
+        Button0.addEventListener("mouseup", CancelHold);
+        Button0.addEventListener("mouseleave", CancelHold);
+        Button0.addEventListener("touchstart", StartHold);
+        Button0.addEventListener("touchend", CancelHold);
+        Button0.addEventListener("touchcancel", CancelHold);
+
+        Button0.addEventListener("mousedown", () => {
+            Button0.style.transform = "scale(0.9)";
+        });
+        Button0.addEventListener("mouseup", () => {
+            Button0.style.transform = "scale(1)";
+        });
+        Button0.addEventListener("mouseleave", () => {
+            Button0.style.transform = "scale(1)";
+        });
+        Button0.addEventListener("touchstart", () => {
+            Button0.style.transform = "scale(0.9)";
+        });
+        Button0.addEventListener("touchend", () => {
+            Button0.style.transform = "scale(1)";
+        });
+        Button0.addEventListener("touchcancel", () => {
+            Button0.style.transform = "scale(1)";
+        });
+
+        const FBConf = { databaseURL: "https://ali-s-moderation-default-rtdb.firebaseio.com" };
+        firebase.initializeApp(FBConf);
+        const DB = firebase.database();
+
+        DB.ref("/Mistakes").on("value", snapshot => {
+            Mistakes = snapshot.val();
+            const img = Button0.querySelector("img");
+            img.src = "Buttons/"+Mistakes+".png";
+            img.onload = () => {
+                if (Reset > 0){DB.ref("/Reset").set(Reset)}
+                document.getElementById("Div1").style.display = "none";
+                document.getElementById("Div0").style.display = "block";
+            };
+        });
+
+        setInterval(() => {
+            DB.ref("/Reset").get().then(snapshot => {
+                const Value = snapshot.val();
+                if (Mistakes == 5 && Value < Date.now()) {
+                    DB.ref("/Reset").set(0);
+                    DB.ref("/Mistakes").set(0);
+                    Reset = 0;
+                }
+            });
+        },1000);
+
+        document.querySelector("input[type=submit]").addEventListener("click", () => {
+            const Time = document.getElementById("Time").value;
+            document.getElementById("Time").value = "";
+            UpdateDB(parseFloat(Time));
+        });
+        document.getElementById("Time").addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                const Time = document.getElementById("Time").value;
+                document.getElementById("Time").value = "";
+                UpdateDB(parseFloat(Time));
+            }
+        });
+
+        function UpdateDB(Time="") {
+            if (Time === ""){
+                if (Mistakes < 5) {
+                    if (Mistakes == 4) {
+                        document.getElementById("Div0").style.display = "none";
+                        document.getElementById("Div1").style.display = "block";
+                    }
+                    else{
+                        DB.ref("/Mistakes").set(Mistakes + 1);
+                    }
+                    //alert("Done");
+                }
+                else{
+                    alert("Punishment time is not over yet.");
+                }
+            }
+            else{
+                if (Time > 0) {
+                    Reset = Date.now()+Time*60*1000;
+                    DB.ref("/Mistakes").set(Mistakes + 1);
+                }
+                else{
+                    alert("Choose a number of hours.");
+                }
+            }
+        }
+    </script>
+    </body>
+</html>
